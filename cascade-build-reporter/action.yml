@@ -88,10 +88,10 @@ runs:
     if: ${{ inputs.op == 'trigger' }}
     shell: bash
     env:
-      owner: $(echo $GITHUB_REPOSITORY | cut -d'/' -f1),
-      repo: $(echo $GITHUB_REPOSITORY | cut -d'/' -f2),
-      sha: $GITHUB_SHA,
-      state: ${{ inputs.status_state }},
+      repo: ${GITHUB_REPOSITORY#*/}
+      owner: ${GITHUB_REPOSITORY%/*}
+      sha: $GITHUB_SHA
+      state: ${{ inputs.status_state }}
       context: ${{ inputs.status_context }}
     run: |
       curl -sS -X POST \
