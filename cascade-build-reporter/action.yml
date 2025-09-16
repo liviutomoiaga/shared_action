@@ -88,9 +88,9 @@ runs:
     if: ${{ inputs.op == 'trigger' }}
     shell: bash
     env:
-      owner: process.env.GITHUB_REPOSITORY.split('/')[0],
-      repo: process.env.GITHUB_REPOSITORY.split('/')[1],
-      sha: process.env.GITHUB_SHA,
+      owner: $(echo $GITHUB_REPOSITORY | cut -d'/' -f1),
+      repo: $(echo $GITHUB_REPOSITORY | cut -d'/' -f2),
+      sha: $GITHUB_SHA,
       state: ${{ inputs.status_state }},
       context: ${{ inputs.status_context }}
     run: |
