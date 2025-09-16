@@ -94,9 +94,9 @@ runs:
           owner: process.env.GITHUB_REPOSITORY.split('/')[0],
           repo: process.env.GITHUB_REPOSITORY.split('/')[1],
           sha: process.env.GITHUB_SHA,
-          state: core.getInput('status_state'),
-          context: core.getInput('status_context'),
-          description: `Resource build is ${core.getInput('status_state')}.`,
+          state:  ${{ inputs.status_state }},
+          context: ${{ inputs.status_context }},
+          description: `Resource build is  ${{ inputs.status_state }}.`,
           target_url: `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
         });
   - name: Dispatch Resource
@@ -115,8 +115,8 @@ runs:
             source_repo:  process.env.GITHUB_REPOSITORY.split('/')[1],
             source_sha:   process.env.GITHUB_SHA,
             source_run_id: process.env.GITHUB_RUN_ID,
-            artifact_name: core.getInput('artifact_name'),
-            status_context: core.getInput('status_context'),
+            artifact_name: ${{ inputs.artifact_name }},
+            status_context: ${{ inputs.status_context }},
             ...extra
           }
         });
