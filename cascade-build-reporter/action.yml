@@ -92,7 +92,7 @@ runs:
       sha: process.env.GITHUB_SHA,
       state: ${{ inputs.status_state }},
       context: ${{ inputs.status_context }},
-      description: `Resource build is  ${{ inputs.status_state }}.`
+      description: `Resource build is `
     run: |
       curl -sS -X POST \
           -H "Accept: application/vnd.github.v3+json" \
@@ -102,7 +102,7 @@ runs:
           \"state\":\"{state}\",
           \"context\":\"{context}\",
           \"target_url\":\"${{ github.server_url }}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\",
-          \"description\":\"{description}\"}"
+          \"description\":\"{description}${{ inputs.status_state }}\"}"
     
   - name: Dispatch Resource
     if: ${{ inputs.op == 'trigger' }}
