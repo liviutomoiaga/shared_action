@@ -101,7 +101,7 @@ runs:
           -d "{
           \"state\":\"${state}\",
           \"context\":\"${context}\",
-          \"target_url\":\"${{ github.server_url }}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",
+          \"target_url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",
           \"description\":\"Resource repo build is ${{ inputs.status_state }}\"}"
     
   - name: Dispatch Resource
