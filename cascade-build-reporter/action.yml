@@ -83,22 +83,27 @@ runs:
       echo "description: Resource build is ${{ inputs.status_state }}."
       echo "target_url: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
-    # ---------- op=trigger ----------
+    # ---------- op=trigger ----------        
   - name: Set main pre-status
     if: ${{ inputs.op == 'trigger' }}
-    uses: actions/github-script@v7
-    with:
-      github-token: ${{ inputs.github_token }}
-      script: |
-        await github.request('POST /repos/{owner}/{repo}/statuses/{sha}', {
-          owner: process.env.GITHUB_REPOSITORY.split('/')[0],
-          repo: process.env.GITHUB_REPOSITORY.split('/')[1],
-          sha: process.env.GITHUB_SHA,
-          state: ${{ inputs.status_state }},
-          context: ${{ inputs.status_context }},
-          description: `Resource build is  ${{ inputs.status_state }}.`,
-          target_url: `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-        });
+    env:
+      owner: process.env.GITHUB_REPOSITORY.split('/')[0],
+      repo: process.env.GITHUB_REPOSITORY.split('/')[1],
+      sha: process.env.GITHUB_SHA,
+      state: ${{ inputs.status_state }},
+      context: ${{ inputs.status_context }},
+      description: `Resource build is  ${{ inputs.status_state }}.`
+    run: |
+      curl -sS -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: Bearer ${{ inputs.github_token }}" \
+          "https://api.github.com/repos/{owner}/{repo}/statuses/{sha}" \
+          -d "{
+          \"state\":\"{state}\",
+          \"context\":\"{context}\",
+          \"target_url\":\"${{ github.server_url }}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\",
+          \"description\":\"{description}\"}"
+    
   - name: Dispatch Resource
     if: ${{ inputs.op == 'trigger' }}
     uses: actions/github-script@v7
