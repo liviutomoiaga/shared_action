@@ -94,6 +94,7 @@ runs:
       state: ${{ inputs.status_state }}
       context: ${{ inputs.status_context }}
     run: |
+      echo "https://api.github.com/repos/${owner}/${repo}/statuses/${sha}"
       curl -sS -X POST \
           -H "Accept: application/vnd.github.v3+json" \
           -H "Authorization: Bearer ${{ inputs.github_token }}" \
