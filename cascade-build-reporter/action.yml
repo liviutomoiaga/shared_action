@@ -94,7 +94,7 @@ runs:
           owner: process.env.GITHUB_REPOSITORY.split('/')[0],
           repo: process.env.GITHUB_REPOSITORY.split('/')[1],
           sha: process.env.GITHUB_SHA,
-          state:  ${{ inputs.status_state }},
+          state: ${{ inputs.status_state }},
           context: ${{ inputs.status_context }},
           description: `Resource build is  ${{ inputs.status_state }}.`,
           target_url: `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
@@ -112,8 +112,8 @@ runs:
           event_type: core.getInput('resource_event_type'),
           client_payload: {
             source_owner: process.env.GITHUB_REPOSITORY.split('/')[0],
-            source_repo:  process.env.GITHUB_REPOSITORY.split('/')[1],
-            source_sha:   process.env.GITHUB_SHA,
+            source_repo: process.env.GITHUB_REPOSITORY.split('/')[1],
+            source_sha: process.env.GITHUB_SHA,
             source_run_id: process.env.GITHUB_RUN_ID,
             artifact_name: ${{ inputs.artifact_name }},
             status_context: ${{ inputs.status_context }},
