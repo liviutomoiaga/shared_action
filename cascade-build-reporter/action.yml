@@ -86,6 +86,7 @@ runs:
     # ---------- op=trigger ----------        
   - name: Set main pre-status
     if: ${{ inputs.op == 'trigger' }}
+    shell: bash
     env:
       owner: process.env.GITHUB_REPOSITORY.split('/')[0],
       repo: process.env.GITHUB_REPOSITORY.split('/')[1],
