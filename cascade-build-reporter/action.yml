@@ -1,0 +1,153 @@
+name: Cascade Build Reporter
+description: "Trigger Resource from Main and report back statuses using same context/SHA."
+author: Liviu Tomoiaga <Liviu.Tomoiaga@analog.com>
+inputs:
+  op:
+    description: "Operation: trigger | report"
+    required: true
+  # Common knobs
+  status_context:
+    description: "Commit status context used on both ends"
+    required: false
+    default: "adi/resource/build"
+
+  # --- trigger op inputs (used by Main) ---
+  status_state:
+    description: "Pre-status for Resource on Main (pending|success|failure)"
+    required: false
+    default: "pending"
+  resource_owner:
+    description: "Owner/org of the Resource repo"
+    required: false
+  resource_repo:
+    description: "Name of the Resource repo"
+    required: false
+  resource_event_type:
+    description: "repository_dispatch type"
+    required: false
+    default: "adi-resource-trigger"
+  artifact_name:
+    description: "Artifact produced by Main for Resource"
+    required: false
+  payload_extra_json:
+    description: "Optional JSON merged into client_payload"
+    required: false
+    default: "{}"
+  github_token:
+    description: "Token with permissions (contents:write, statuses:write)"
+    required: false
+
+  # --- report op inputs (used by Resource) ---
+  report_state:
+    description: "Status to report back (success|failure|error|pending)"
+    required: false
+    default: "success"
+  report_description:
+    description: "Status description to show in Main"
+    required: false
+    default: "Resource build result"
+  report_target_url:
+    description: "URL to link from the status (usually this run URL)"
+    required: false
+    default: ""
+  status_pat:
+    description: "Fine-grained PAT to write statuses on Main repo"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+  - name: Compute meta (always)
+    id: meta
+    shell: bash
+    run: |
+      echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      echo "run_id=${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+      echo "repo=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+      echo "owner=${GITHUB_REPOSITORY%/*}" >> "$GITHUB_OUTPUT"
+
+  - name: Assert op
+    if: ${{ inputs.op == '' }}
+    shell: bash
+    run: |
+      echo "::error ::'op' input is required (trigger|report)"
+      exit 1
+
+    # ---------- op=trigger ----------
+  - name: Set main pre-status
+    if: ${{ inputs.op == 'trigger' }}
+    uses: actions/github-script@v7
+    with:
+      github-token: ${{ inputs.github_token }}
+      script: |
+        await github.request('POST /repos/{owner}/{repo}/statuses/{sha}', {
+          owner: process.env.GITHUB_REPOSITORY.split('/')[0],
+          repo: process.env.GITHUB_REPOSITORY.split('/')[1],
+          sha: process.env.GITHUB_SHA,
+          state: core.getInput('status_state'),
+          context: core.getInput('status_context'),
+          description: `Resource build is ${core.getInput('status_state')}.`,
+          target_url: `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+        });
+  - name: Dispatch Resource
+    if: ${{ inputs.op == 'trigger' }}
+    uses: actions/github-script@v7
+    with:
+      github-token: ${{ inputs.github_token }}
+      script: |
+        const extra = JSON.parse(core.getInput('payload_extra_json') || '{}');
+        await github.request('POST /repos/{owner}/{repo}/dispatches', {
+          owner: core.getInput('resource_owner'),
+          repo: core.getInput('resource_repo'),
+          event_type: core.getInput('resource_event_type'),
+          client_payload: {
+            source_owner: process.env.GITHUB_REPOSITORY.split('/')[0],
+            source_repo:  process.env.GITHUB_REPOSITORY.split('/')[1],
+            source_sha:   process.env.GITHUB_SHA,
+            source_run_id: process.env.GITHUB_RUN_ID,
+            artifact_name: core.getInput('artifact_name'),
+            status_context: core.getInput('status_context'),
+            ...extra
+          }
+        });
+          # ---------- op=report ----------
+  - name: Extract payload (for report)
+    if: ${{ inputs.op == 'report' }}
+    id: payload
+    shell: bash
+    run: |
+      EVENT_JSON='${{ toJson(github.event) }}'
+      # Required fields from repository_dispatch payload:
+      for k in source_owner source_repo source_sha status_context; do
+        v=$(jq -er ".client_payload.$k" <<< "$EVENT_JSON") || {
+          echo "::error title=Missing payload field::$k missing in client_payload"; exit 1; }
+        echo "${k^^}=$v" >> $GITHUB_ENV
+      done
+
+  - name: Post status to Main
+    if: ${{ inputs.op == 'report' }}
+    shell: bash
+    env:
+      GH_PAT: ${{ inputs.status_pat }}
+    run: |
+      if [ -z "$GH_PAT" ]; then
+        echo "::error ::'status_pat' is required for op=report"; exit 1
+      fi
+
+      TARGET="${{ inputs.report_target_url }}"
+      if [ -z "$TARGET" ]; then
+        TARGET="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      fi
+
+      curl -sS -H "Authorization: token $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            -X POST \
+            "https://api.github.com/repos/$SOURCE_OWNER/$SOURCE_REPO/statuses/$SOURCE_SHA" \
+            -d @- <<EOF
+      {
+        "state": "${{ inputs.report_state }}",
+        "context": "${{ env.STATUS_CONTEXT || inputs.status_context }}",
+        "description": "${{ inputs.report_description }}",
+        "target_url": "${TARGET}"
+      }
+      EOF
