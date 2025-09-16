@@ -29,6 +29,9 @@ inputs:
   artifact_name:
     description: "Artifact produced by Main for Resource"
     required: false
+  resource_repo_branch:
+    description: "Target branch to build for repository dispatched"
+    required: true
   payload_extra_json:
     description: "Optional JSON merged into client_payload"
     required: false
@@ -88,8 +91,6 @@ runs:
     if: ${{ inputs.op == 'trigger' }}
     shell: bash
     env:
-      repo: ${GITHUB_REPOSITORY#*/}
-      owner: ${GITHUB_REPOSITORY%/*}
       sha: $GITHUB_SHA
       state: ${{ inputs.status_state }}
       context: ${{ inputs.status_context }}
@@ -104,28 +105,23 @@ runs:
           \"context\":\"${context}\",
           \"target_url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",
           \"description\":\"Resource repo build is ${{ inputs.status_state }}\"}"
-    
-  - name: Dispatch Resource
-    if: ${{ inputs.op == 'trigger' }}
-    uses: actions/github-script@v7
+  - name: Extract Target branch for repository dispatch
+    run: |
+      
+  - name: Trigger Repo Slave via repository_dispatch
+    uses: peter-evans/repository-dispatch@v3
     with:
-      github-token: ${{ inputs.github_token }}
-      script: |
-        const extra = JSON.parse(core.getInput('payload_extra_json') || '{}');
-        await github.request('POST /repos/{owner}/{repo}/dispatches', {
-          owner: core.getInput('resource_owner'),
-          repo: core.getInput('resource_repo'),
-          event_type: core.getInput('resource_event_type'),
-          client_payload: {
-            source_owner: process.env.GITHUB_REPOSITORY.split('/')[0],
-            source_repo: process.env.GITHUB_REPOSITORY.split('/')[1],
-            source_sha: process.env.GITHUB_SHA,
-            source_run_id: process.env.GITHUB_RUN_ID,
-            artifact_name: ${{ inputs.artifact_name }},
-            status_context: ${{ inputs.status_context }},
-            ...extra
-          }
-        });
+      token: ${{ secrets.GIT_TOKEN }}
+      repository: ${{ inputs.resource_owner }}/${{ inputs.resource_repo }}      # <-- change me
+      event-type: ${{ inputs.resource_event_type }}
+      client-payload: |
+        {
+          "source_repo": "$GITHUB_REPOSITORY",
+          "source_run_id": "$GITHUB_RUN_ID",
+          "source_sha": "$GITHUB_SHA",
+          "artifact_name": "${{ inputs.artifact_name }}",
+          "target_branch_b": "${{ inputs.resource_repo_branch }}"
+        }
           # ---------- op=report ----------
   - name: Extract payload (for report)
     if: ${{ inputs.op == 'report' }}
