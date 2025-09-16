@@ -108,7 +108,7 @@ runs:
   - name: Trigger Repo Slave via repository_dispatch
     uses: peter-evans/repository-dispatch@v3
     with:
-      token: ${{ secrets.GIT_TOKEN }}
+      token: ${{ inputs.github_token }}
       repository: ${{ inputs.resource_owner }}/${{ inputs.resource_repo }}      # <-- change me
       event-type: ${{ inputs.resource_event_type }}
       client-payload: |
