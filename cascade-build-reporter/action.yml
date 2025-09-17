@@ -39,19 +39,17 @@ inputs:
   # --- report op inputs (used by Resource) ---
   report_state:
     description: "Status to report back (success|failure|error|pending)"
-    required: false
-    default: "success"
+    required: true
   report_description:
     description: "Status description to show in Main"
     required: false
     default: "Resource build result"
   report_target_url:
     description: "URL to link from the status (usually this run URL)"
-    required: false
-    default: ""
+    required: true
   status_pat:
     description: "Fine-grained PAT to write statuses on Main repo"
-    required: false
+    required: true
 
 runs:
   using: "composite"
@@ -71,16 +69,6 @@ runs:
     run: |
       echo "::error ::'op' input is required (trigger|report)"
       exit 1
-  - name: Echo input parameters
-    shell: bash
-    run: |
-      echo "owner: $(echo $GITHUB_REPOSITORY | cut -d'/' -f1)"
-      echo "repo: $(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
-      echo "sha: $GITHUB_SHA"
-      echo "state: ${{ inputs.status_state }}"
-      echo "context: ${{ inputs.status_context }}"
-      echo "description: Resource build is ${{ inputs.status_state }}."
-      echo "target_url: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
     # ---------- op=trigger ----------         
   - name: Trigger Repo Slave via repository_dispatch
@@ -147,7 +135,7 @@ runs:
         "https://api.github.com/repos/${{ steps.payload.outputs.source_repo }}/statuses/${{ steps.payload.outputs.source_sha }}" \
         -d "{
           \"state\": \"${{ inputs.report_state }}\",
-          \"context\":\"Repo Slave: build on (${{ steps.payload.outputs.target_branch_b }})\",
+          \"context\":\"adi-resource-build\",
           \"target_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
-          \"description\": \"cB build passed\"
+          \"description\": \"${{ inputs.report_description }}\"
         }"
