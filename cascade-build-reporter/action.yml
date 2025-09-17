@@ -9,7 +9,7 @@ inputs:
   status_context:
     description: "Commit status context used on both ends"
     required: false
-    default: "adi/resource/build"
+    default: "adi-resource-build"
 
   # --- trigger op inputs (used by Main) ---
   status_state:
@@ -54,14 +54,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-  - name: Compute meta (always)
-    id: meta
-    shell: bash
-    run: |
-      echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-      echo "run_id=${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
-      echo "repo=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
-      echo "owner=${GITHUB_REPOSITORY%/*}" >> "$GITHUB_OUTPUT"
+  # - name: Compute meta (always)
+  #   id: meta
+  #   shell: bash
+  #   run: |
+  #     echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+  #     echo "run_id=${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+  #     echo "repo=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+  #     echo "owner=${GITHUB_REPOSITORY%/*}" >> "$GITHUB_OUTPUT"
 
   - name: Assert op
     if: ${{ inputs.op == '' }}
