@@ -86,7 +86,21 @@ runs:
       echo "description: Resource build is ${{ inputs.status_state }}."
       echo "target_url: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
-    # ---------- op=trigger ----------        
+    # ---------- op=trigger ----------         
+  - name: Trigger Repo Slave via repository_dispatch
+    uses: peter-evans/repository-dispatch@v3
+    with:
+      token: ${{ inputs.github_token }}
+      repository: ${{ inputs.resource_owner }}/${{ inputs.resource_repo }}      # <-- change me
+      event-type: ${{ inputs.resource_event_type }}
+      client-payload: |
+        {
+          "source_repo": $GITHUB_REPOSITORY,
+          "source_run_id": $GITHUB_RUN_ID,
+          "source_sha": $GITHUB_SHA,
+          "artifact_name": ${{ inputs.artifact_name }},
+          "target_branch_b": ${{ inputs.resource_repo_branch }}
+        }
   - name: Set main pre-status
     if: ${{ inputs.op == 'trigger' }}
     shell: bash
@@ -104,22 +118,8 @@ runs:
           \"state\":\"${state}\",
           \"context\":\"${context}\",
           \"target_url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",
-          \"description\":\"Resource repo build is ${{ inputs.status_state }}\"}"      
-  - name: Trigger Repo Slave via repository_dispatch
-    uses: peter-evans/repository-dispatch@v3
-    with:
-      token: ${{ inputs.github_token }}
-      repository: ${{ inputs.resource_owner }}/${{ inputs.resource_repo }}      # <-- change me
-      event-type: ${{ inputs.resource_event_type }}
-      client-payload: |
-        {
-          "source_repo": "$GITHUB_REPOSITORY",
-          "source_run_id": "$GITHUB_RUN_ID",
-          "source_sha": "$GITHUB_SHA",
-          "artifact_name": "${{ inputs.artifact_name }}",
-          "target_branch_b": "${{ inputs.resource_repo_branch }}"
-        }
-          # ---------- op=report ----------
+          \"description\":\"Resource repo build is ${{ inputs.status_state }}\"}"     
+    # ---------- op=report ----------
   - name: Extract payload (for report)
     if: ${{ inputs.op == 'report' }}
     id: payload
