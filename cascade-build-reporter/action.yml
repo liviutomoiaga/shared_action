@@ -72,6 +72,7 @@ runs:
 
     # ---------- op=trigger ----------         
   - name: Trigger Repo Slave via repository_dispatch
+    if: ${{ inputs.op == 'trigger' }}
     uses: peter-evans/repository-dispatch@v3
     with:
       token: ${{ inputs.github_token }}
