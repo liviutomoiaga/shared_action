@@ -94,8 +94,8 @@ runs:
           "source_repo":"${{ github.repository }}",
           "source_run_id":"${{ github.run_id }}",
           "source_sha":"${{ github.sha }}",
-          "artifact_name": ${{ inputs.artifact_name }},
-          "target_branch_b": ${{ inputs.resource_repo_branch }}
+          "artifact_name": "${{ inputs.artifact_name }}",
+          "target_branch_b": "${{ inputs.resource_repo_branch }}"
         }
   - name: Set main pre-status
     if: ${{ inputs.op == 'trigger' }}
