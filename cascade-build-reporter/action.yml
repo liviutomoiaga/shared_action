@@ -32,10 +32,6 @@ inputs:
   resource_repo_branch:
     description: "Target branch to build for repository dispatched"
     required: true
-  payload_extra_json:
-    description: "Optional JSON merged into client_payload"
-    required: false
-    default: "{}"
   github_token:
     description: "Token with permissions (contents:write, statuses:write)"
     required: false
