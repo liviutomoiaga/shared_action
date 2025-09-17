@@ -117,12 +117,21 @@ runs:
     id: payload
     shell: bash
     run: |
-      EVENT_JSON='${{ toJson(github.event) }}'
-      # Required fields from repository_dispatch payload:
-      for k in source_owner source_repo source_sha status_context; do
-        v=$(jq -er ".client_payload.$k" <<< "$EVENT_JSON") || {
-          echo "::error title=Missing payload field::$k missing in client_payload"; exit 1; }
-        echo "${k^^}=$v" >> $GITHUB_ENV
+      set -euo pipefail
+      # Pull from the client payload sent by Master
+      echo "source_repo=${{ github.event.client_payload.source_repo }}"     >> "$GITHUB_OUTPUT"
+      echo "source_run_id=${{ github.event.client_payload.source_run_id }}" >> "$GITHUB_OUTPUT"
+      echo "source_sha=${{ github.event.client_payload.source_sha }}"       >> "$GITHUB_OUTPUT"
+      echo "artifact_name=${{ github.event.client_payload.artifact_name }}" >> "$GITHUB_OUTPUT"
+      echo "target_branch_b=${{ github.event.client_payload.target_branch_b }}" >> "$GITHUB_OUTPUT"
+
+      # Minimal validation
+      for k in source_repo source_run_id source_sha artifact_name target_branch_b; do
+        v=$(grep "^$k=" "$GITHUB_OUTPUT" | sed "s/^$k=//")
+        if [[ -z "$v" ]]; then
+          echo "::error title=Missing payload field::$k was not provided in repository_dispatch payload."
+          exit 1
+        fi
       done
 
   - name: Post status to Main
@@ -130,6 +139,18 @@ runs:
     shell: bash
     env:
       GH_PAT: ${{ inputs.status_pat }}
+    run: |
+      set -euo pipefail
+      curl -sS -X POST \
+        -H "Accept: application/vnd.github.v3+json" \
+        -H "Authorization: Bearer ${{ secrets.GIT_TOKEN  }}" \
+        "https://api.github.com/repos/${{ steps.payload.outputs.source_repo }}/statuses/${{ steps.payload.outputs.source_sha }}" \
+        -d "{
+          \"state\": \"success\",
+          \"context\":\"Repo Slave: build on (${{ steps.payload.outputs.target_branch_b }})\",
+          \"target_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+          \"description\": \"cB build passed\"
+        }"
     run: |
       if [ -z "$GH_PAT" ]; then
         echo "::error ::'status_pat' is required for op=report"; exit 1
