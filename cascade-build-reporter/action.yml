@@ -146,30 +146,8 @@ runs:
         -H "Authorization: Bearer ${{ secrets.GIT_TOKEN  }}" \
         "https://api.github.com/repos/${{ steps.payload.outputs.source_repo }}/statuses/${{ steps.payload.outputs.source_sha }}" \
         -d "{
-          \"state\": \"success\",
+          \"state\": \"${{ inputs.report_state }}\",
           \"context\":\"Repo Slave: build on (${{ steps.payload.outputs.target_branch_b }})\",
           \"target_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
           \"description\": \"cB build passed\"
         }"
-    run: |
-      if [ -z "$GH_PAT" ]; then
-        echo "::error ::'status_pat' is required for op=report"; exit 1
-      fi
-
-      TARGET="${{ inputs.report_target_url }}"
-      if [ -z "$TARGET" ]; then
-        TARGET="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-      fi
-
-      curl -sS -H "Authorization: token $GH_PAT" \
-            -H "Accept: application/vnd.github+json" \
-            -X POST \
-            "https://api.github.com/repos/$SOURCE_OWNER/$SOURCE_REPO/statuses/$SOURCE_SHA" \
-            -d @- <<EOF
-      {
-        "state": "${{ inputs.report_state }}",
-        "context": "${{ env.STATUS_CONTEXT || inputs.status_context }}",
-        "description": "${{ inputs.report_description }}",
-        "target_url": "${TARGET}"
-      }
-      EOF
