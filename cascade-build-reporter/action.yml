@@ -4,37 +4,36 @@ author: Liviu Tomoiaga <Liviu.Tomoiaga@analog.com>
 inputs:
   op:
     description: "Operation: trigger | report"
+    default: ""
     required: true
   # Common knobs
   status_context:
     description: "Commit status context used on both ends"
-    required: false
-    default: "adi-resource-build"
+    required: true
 
   # --- trigger op inputs (used by Main) ---
   status_state:
     description: "Pre-status for Resource on Main (pending|success|failure)"
-    required: false
-    default: "pending"
+    required: true
   resource_owner:
     description: "Owner/org of the Resource repo"
-    required: false
+    required: true
   resource_repo:
     description: "Name of the Resource repo"
-    required: false
+    required: true
   resource_event_type:
     description: "repository_dispatch type"
-    required: false
+    required: true
     default: "adi-resource-trigger"
   artifact_name:
     description: "Artifact produced by Main for Resource"
-    required: false
+    required: true
   resource_repo_branch:
     description: "Target branch to build for repository dispatched"
     required: true
   github_token:
     description: "Token with permissions (contents:write, statuses:write)"
-    required: false
+    required: true
 
   # --- report op inputs (used by Resource) ---
   report_state:
@@ -63,12 +62,12 @@ runs:
   #     echo "repo=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
   #     echo "owner=${GITHUB_REPOSITORY%/*}" >> "$GITHUB_OUTPUT"
 
-  - name: Assert op
-    if: ${{ inputs.op == '' }}
-    shell: bash
-    run: |
-      echo "::error ::'op' input is required (trigger|report)"
-      exit 1
+  # - name: Assert op
+  #   if: ${{ inputs.op == '' }}
+  #   shell: bash
+  #   run: |
+  #     echo "::error ::'op' input is required (trigger|report)"
+  #     exit 1
 
     # ---------- op=trigger ----------         
   - name: Trigger Repo Slave via repository_dispatch
@@ -86,6 +85,20 @@ runs:
           "artifact_name": "${{ inputs.artifact_name }}",
           "target_branch_b": "${{ inputs.resource_repo_branch }}"
         }
+  - name: Post Status using post_status.sh
+    if: ${{ inputs.op == 'trigger' }}
+    shell: bash
+    run: |
+      chmod +x post_status.sh
+      ./post_status.sh \
+        --repo "$GITHUB_REPOSITORY" \
+        --sha "$GITHUB_SHA" \
+        --state "${{ inputs.status_state }}" \
+        --context "${{ inputs.status_context }}" \
+        --url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+        --description "Resource repo build is ${{ inputs.status_state }}" \
+        --token "${{ inputs.github_token }}"
+
   - name: Set main pre-status
     if: ${{ inputs.op == 'trigger' }}
     shell: bash
@@ -100,43 +113,43 @@ runs:
           \"context\":\"${{ inputs.status_context }}\",
           \"target_url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",
           \"description\":\"Resource repo build is ${{ inputs.status_state }}\"}"     
+    
     # ---------- op=report ----------
-  - name: Extract payload (for report)
-    if: ${{ inputs.op == 'report' }}
-    id: payload
-    shell: bash
-    run: |
-      set -euo pipefail
-      # Pull from the client payload sent by Master
-      echo "source_repo=${{ github.event.client_payload.source_repo }}"     >> "$GITHUB_OUTPUT"
-      echo "source_run_id=${{ github.event.client_payload.source_run_id }}" >> "$GITHUB_OUTPUT"
-      echo "source_sha=${{ github.event.client_payload.source_sha }}"       >> "$GITHUB_OUTPUT"
-      echo "artifact_name=${{ github.event.client_payload.artifact_name }}" >> "$GITHUB_OUTPUT"
-      echo "target_branch_b=${{ github.event.client_payload.target_branch_b }}" >> "$GITHUB_OUTPUT"
+  # - name: Extract payload (for report)
+  #   if: ${{ inputs.op == 'report' }}
+  #   id: payload
+  #   shell: bash
+  #   run: |
+  #     set -euo pipefail
+  #     # Pull from the client payload sent by Master
+  #     echo "source_repo=${{ github.event.client_payload.source_repo }}"     >> "$GITHUB_OUTPUT"
+  #     echo "source_run_id=${{ github.event.client_payload.source_run_id }}" >> "$GITHUB_OUTPUT"
+  #     echo "source_sha=${{ github.event.client_payload.source_sha }}"       >> "$GITHUB_OUTPUT"
+  #     echo "artifact_name=${{ github.event.client_payload.artifact_name }}" >> "$GITHUB_OUTPUT"
+  #     echo "target_branch_b=${{ github.event.client_payload.target_branch_b }}" >> "$GITHUB_OUTPUT"
 
-      # Minimal validation
-      for k in source_repo source_run_id source_sha artifact_name target_branch_b; do
-        v=$(grep "^$k=" "$GITHUB_OUTPUT" | sed "s/^$k=//")
-        if [[ -z "$v" ]]; then
-          echo "::error title=Missing payload field::$k was not provided in repository_dispatch payload."
-          exit 1
-        fi
-      done
+  #     # Minimal validation
+  #     for k in source_repo source_run_id source_sha artifact_name target_branch_b; do
+  #       v=$(grep "^$k=" "$GITHUB_OUTPUT" | sed "s/^$k=//")
+  #       if [[ -z "$v" ]]; then
+  #         echo "::error title=Missing payload field::$k was not provided in repository_dispatch payload."
+  #         exit 1
+  #       fi
+  #     done
 
-  - name: Post status to Main
+  - name: Post status to Main using post_status.sh
     if: ${{ inputs.op == 'report' }}
     shell: bash
     env:
       GH_PAT: ${{ inputs.status_pat }}
     run: |
       set -euo pipefail
-      curl -sS -X POST \
-        -H "Accept: application/vnd.github.v3+json" \
-        -H "Authorization: Bearer $GH_PAT" \
-        "https://api.github.com/repos/${{ steps.payload.outputs.source_repo }}/statuses/${{ steps.payload.outputs.source_sha }}" \
-        -d "{
-          \"state\": \"${{ inputs.report_state }}\",
-          \"context\":\"adi-resource-build\",
-          \"target_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
-          \"description\": \"${{ inputs.report_description }}\"
-        }"
+      chmod +x post_status.sh
+      ./post_status.sh \
+        --repo "${{ steps.payload.outputs.source_repo }}" \
+        --sha "${{ steps.payload.outputs.source_sha }}" \
+        --state "${{ inputs.report_state }}" \
+        --context "${{ inputs.status_context }}" \
+        --url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+        --description "${{ inputs.report_description }}" \
+        --token "$GH_PAT"
