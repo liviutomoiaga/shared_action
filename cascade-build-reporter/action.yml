@@ -115,27 +115,27 @@ runs:
   #         \"description\":\"Resource repo build is ${{ inputs.status_state }}\"}"     
     
     # ---------- op=report ----------
-  # - name: Extract payload (for report)
-  #   if: ${{ inputs.op == 'report' }}
-  #   id: payload
-  #   shell: bash
-  #   run: |
-  #     set -euo pipefail
-  #     # Pull from the client payload sent by Master
-  #     echo "source_repo=${{ github.event.client_payload.source_repo }}"     >> "$GITHUB_OUTPUT"
-  #     echo "source_run_id=${{ github.event.client_payload.source_run_id }}" >> "$GITHUB_OUTPUT"
-  #     echo "source_sha=${{ github.event.client_payload.source_sha }}"       >> "$GITHUB_OUTPUT"
-  #     echo "artifact_name=${{ github.event.client_payload.artifact_name }}" >> "$GITHUB_OUTPUT"
-  #     echo "target_branch_b=${{ github.event.client_payload.target_branch_b }}" >> "$GITHUB_OUTPUT"
+  - name: Extract payload (for report)
+    if: ${{ inputs.op == 'report' }}
+    id: payload
+    shell: bash
+    run: |
+      set -euo pipefail
+      # Pull from the client payload sent by Master
+      echo "source_repo=${{ github.event.client_payload.source_repo }}"     >> "$GITHUB_OUTPUT"
+      echo "source_run_id=${{ github.event.client_payload.source_run_id }}" >> "$GITHUB_OUTPUT"
+      echo "source_sha=${{ github.event.client_payload.source_sha }}"       >> "$GITHUB_OUTPUT"
+      echo "artifact_name=${{ github.event.client_payload.artifact_name }}" >> "$GITHUB_OUTPUT"
+      echo "target_branch_b=${{ github.event.client_payload.target_branch_b }}" >> "$GITHUB_OUTPUT"
 
-  #     # Minimal validation
-  #     for k in source_repo source_run_id source_sha artifact_name target_branch_b; do
-  #       v=$(grep "^$k=" "$GITHUB_OUTPUT" | sed "s/^$k=//")
-  #       if [[ -z "$v" ]]; then
-  #         echo "::error title=Missing payload field::$k was not provided in repository_dispatch payload."
-  #         exit 1
-  #       fi
-  #     done
+      # Minimal validation
+      for k in source_repo source_run_id source_sha artifact_name target_branch_b; do
+        v=$(grep "^$k=" "$GITHUB_OUTPUT" | sed "s/^$k=//")
+        if [[ -z "$v" ]]; then
+          echo "::error title=Missing payload field::$k was not provided in repository_dispatch payload."
+          exit 1
+        fi
+      done
 
   - name: Post status to Main using post_status.sh
     if: ${{ inputs.op == 'report' }}
