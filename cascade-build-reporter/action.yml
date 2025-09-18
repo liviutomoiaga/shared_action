@@ -89,8 +89,8 @@ runs:
     if: ${{ inputs.op == 'trigger' }}
     shell: bash
     run: |
-      chmod +x ./post_status.sh
-      ./post_status.sh \
+      chmod +x ${GITHUB_ACTION_PATH}/post_status.sh
+      ${GITHUB_ACTION_PATH}/post_status.sh \
         --repo "$GITHUB_REPOSITORY" \
         --sha "$GITHUB_SHA" \
         --state "${{ inputs.status_state }}" \
@@ -145,8 +145,8 @@ runs:
       GH_PAT: ${{ inputs.status_pat }}
     run: |
       set -euo pipefail
-      chmod +x ./post_status.sh
-      ./post_status.sh \
+      chmod +x ${GITHUB_ACTION_PATH}/post_status.sh
+      ${GITHUB_ACTION_PATH}/post_status.sh \
         --repo "${{ steps.payload.outputs.source_repo }}" \
         --sha "${{ steps.payload.outputs.source_sha }}" \
         --state "${{ inputs.report_state }}" \
