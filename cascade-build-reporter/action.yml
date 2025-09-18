@@ -98,6 +98,7 @@ runs:
         --target_url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
         --description "Resource repo build is ${{ inputs.status_state }}" \
         --token "${{ inputs.github_token }}"
+    working-directory: ./shared-actions/cascade-build-reporter
 
   # - name: Set main pre-status
   #   if: ${{ inputs.op == 'trigger' }}
@@ -153,3 +154,4 @@ runs:
         --target_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
         --description "${{ inputs.report_description }}" \
         --token "$GH_PAT"
+    working-directory: ./shared-actions/cascade-build-reporter
