@@ -79,7 +79,7 @@ runs:
         --sha "$GITHUB_SHA" \
         --state "${{ inputs.status_state }}" \
         --context "${{ inputs.status_context }}" \
-        --target_url "https://github.com/${{ inputs.resource_owner }}/${{ inputs.resource_repo }}/actions \
+        --target_url "https://github.com/${{ inputs.resource_owner }}/${{ inputs.resource_repo }}/actions" \
         --description "Resource repo build is ${{ inputs.status_state }}" \
         --token "${{ inputs.github_token }}"
     
