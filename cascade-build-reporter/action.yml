@@ -10,6 +10,10 @@ inputs:
   status_context:
     description: "Commit status context used on both ends"
     required: true
+  runner_os:
+    default: "ubuntu-latest"
+    description: "Pass the runner label from main to receiver
+    required: false
 
   # --- trigger op inputs (used by Main) ---
   status_state:
@@ -68,6 +72,7 @@ runs:
           "source_sha":"${{ github.sha }}",
           "artifact_name": "${{ inputs.artifact_name }}",
           "target_branch_b": "${{ inputs.resource_repo_branch }}"
+          "runner_os": "${{ inputs.runner_os }}"
         }
   - name: Post Status using post_status.sh
     if: ${{ inputs.op == 'trigger' }}
