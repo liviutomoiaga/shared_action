@@ -71,7 +71,7 @@ runs:
           "source_run_id":"${{ github.run_id }}",
           "source_sha":"${{ github.sha }}",
           "artifact_name": "${{ inputs.artifact_name }}",
-          "target_branch_b": "${{ inputs.resource_repo_branch }}"
+          "target_branch_b": "${{ inputs.resource_repo_branch }}",
           "runner_os": "${{ inputs.runner_os }}"
         }
   - name: Post Status using post_status.sh
