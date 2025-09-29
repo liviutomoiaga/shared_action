@@ -12,7 +12,7 @@ inputs:
     required: true
   runner_os:
     default: "ubuntu-latest"
-    description: "Pass the runner label from main to receiver
+    description: "Pass the runner label from main to receiver"
     required: false
 
   # --- trigger op inputs (used by Main) ---
