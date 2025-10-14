@@ -54,16 +54,11 @@ runs:
   using: "composite"
   steps:
     # ---------- OS Validation ----------
-  - name: Validate Linux OS
-    shell: bash
+  - name: Invalidate Windows OS
+    if: ${{ runner.os == 'Windows' }}
     run: |
-      if [[ ! -f /proc/version ]] || ! grep -qi "linux" /proc/version; then
-        echo "::error title=Unsupported OS::This action requires a Linux-based operating system."
-        echo "Detected OS: $RUNNER_OS"
-        echo "Please use 'runs-on: ubuntu-latest' or another Linux-based runner."
-        exit 1
-      fi
-      echo "✓ Running on Linux-based system"
+      echo "Please use 'runs-on: ubuntu-latest' or another Linux-based runner."
+      exit 1
     # ---------- op=trigger ----------         
   - name: Trigger Worker Repo via repository_dispatch
     if: ${{ inputs.op == 'trigger' }}
