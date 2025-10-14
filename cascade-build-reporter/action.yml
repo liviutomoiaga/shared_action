@@ -56,6 +56,7 @@ runs:
     # ---------- OS Validation ----------
   - name: Invalidate Windows OS
     if: ${{ runner.os == 'Windows' }}
+    shell: cmd
     run: |
       echo "Please use 'runs-on: ubuntu-latest' or another Linux-based runner."
       exit 1
