@@ -1,5 +1,5 @@
 name: Cascade Build Reporter
-description: "Trigger Resource from Main and report back statuses using same context/SHA."
+description: "Trigger Worker repository from Orchestrator repository and report back statuses using same context/SHA."
 author: Liviu Tomoiaga <Liviu.Tomoiaga@analog.com>
 inputs:
   op:
@@ -10,27 +10,23 @@ inputs:
   status_context:
     description: "Commit status context used on both ends"
     required: true
-  runner_os:
-    default: "ubuntu-latest"
-    description: "Pass the runner label from main to receiver"
-    required: false
 
-  # --- trigger op inputs (used by Main) ---
+  # --- trigger op inputs (used by Orchestrator ) ---
   status_state:
-    description: "Pre-status for Resource on Main (pending|success|failure)"
+    description: "Pre-status for Worker on Orchestrator  (pending|success|failure)"
     required: true
   resource_owner:
-    description: "Owner/org of the Resource repo"
+    description: "Owner/org of the Worker repo"
     required: true
   resource_repo:
-    description: "Name of the Resource repo"
+    description: "Name of the Worker repo"
     required: true
   resource_event_type:
     description: "repository_dispatch type"
     required: true
-    default: "adi-resource-trigger"
+    default: "adi-worker-trigger"
   artifact_name:
-    description: "Artifact produced by Main for Resource"
+    description: "Artifact produced by Orchestrator  for Worker"
     required: true
   resource_repo_branch:
     description: "Target branch to build for repository dispatched"
@@ -39,28 +35,28 @@ inputs:
     description: "Token with permissions (contents:write, statuses:write)"
     required: true
 
-  # --- report op inputs (used by Resource) ---
+  # --- report op inputs (used by Worker) ---
   report_state:
     description: "Status to report back (success|failure|error|pending)"
     required: true
   report_description:
-    description: "Status description to show in Main"
+    description: "Status description to show in Orchestrator "
     required: false
-    default: "Resource build result"
+    default: "Worker build result"
   report_target_url:
     description: "URL to link from the status (usually this run URL)"
     required: true
   status_pat:
-    description: "Fine-grained PAT to write statuses on Main repo"
+    description: "Fine-grained PAT to write statuses on Orchestrator  repo"
     required: true
 
 runs:
   using: "composite"
   steps:
     # ---------- op=trigger ----------         
-  - name: Trigger Repo Slave via repository_dispatch
+  - name: Trigger Worker Repo via repository_dispatch
     if: ${{ inputs.op == 'trigger' }}
-    uses: peter-evans/repository-dispatch@v3
+    uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 #tag: v3
     with:
       token: ${{ inputs.github_token }}
       repository: ${{ inputs.resource_owner }}/${{ inputs.resource_repo }}
@@ -71,8 +67,7 @@ runs:
           "source_run_id":"${{ github.run_id }}",
           "source_sha":"${{ github.sha }}",
           "artifact_name": "${{ inputs.artifact_name }}",
-          "target_branch_b": "${{ inputs.resource_repo_branch }}",
-          "runner_os": "${{ inputs.runner_os }}"
+          "target_branch_b": "${{ inputs.resource_repo_branch }}"
         }
   - name: Post Status using post_status.sh
     if: ${{ inputs.op == 'trigger' }}
@@ -84,8 +79,8 @@ runs:
         --sha "$GITHUB_SHA" \
         --state "${{ inputs.status_state }}" \
         --context "${{ inputs.status_context }}" \
-        --target_url "https://github.com/${{ inputs.resource_owner }}/${{ inputs.resource_repo }}/actions" \
-        --description "Resource repo build is ${{ inputs.status_state }}" \
+        --target_url "${{ github.server_url }}/${{ inputs.resource_owner }}/${{ inputs.resource_repo }}/actions" \
+        --description "Worker repo build is ${{ inputs.status_state }}" \
         --token "${{ inputs.github_token }}"
     
     # ---------- op=report ----------
@@ -111,7 +106,7 @@ runs:
         fi
       done
 
-  - name: Post status to Main using post_status.sh
+  - name: Post status to Orchestrator using post_status.sh
     if: ${{ inputs.op == 'report' }}
     shell: bash
     env:
