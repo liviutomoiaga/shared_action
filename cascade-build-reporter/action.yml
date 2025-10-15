@@ -10,25 +10,26 @@ inputs:
   status_context:
     description: "Commit status context used on both ends"
     required: true
+    default: "adi-worker-build"
 
   # --- trigger op inputs (used by Orchestrator ) ---
   status_state:
     description: "Pre-status for Worker on Orchestrator  (pending|success|failure)"
     required: true
-  resource_owner:
+  worker_owner:
     description: "Owner/org of the Worker repo"
     required: true
-  resource_repo:
+  worker_repo:
     description: "Name of the Worker repo"
     required: true
-  resource_event_type:
+  worker_event_type:
     description: "repository_dispatch type"
     required: true
     default: "adi-worker-trigger"
   artifact_name:
     description: "Artifact produced by Orchestrator  for Worker"
     required: true
-  resource_repo_branch:
+  worker_repo_branch:
     description: "Target branch to build for repository dispatched"
     required: true
   github_token:
@@ -53,12 +54,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # ---------- OS Validation ----------
-  - name: Invalidate Windows OS
+  # ---------- OS Validation ----------
+  - name: Check for Windows OS
     if: ${{ runner.os == 'Windows' }}
     shell: cmd
     run: |
-      echo "Please use 'runs-on: ubuntu-latest' or another Linux-based runner."
+      echo "This action only supports Linux-based runners."
       exit 1
     # ---------- op=trigger ----------         
   - name: Trigger Worker Repo via repository_dispatch
@@ -66,15 +67,15 @@ runs:
     uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 #tag: v3
     with:
       token: ${{ inputs.github_token }}
-      repository: ${{ inputs.resource_owner }}/${{ inputs.resource_repo }}
-      event-type: ${{ inputs.resource_event_type }}
+      repository: ${{ inputs.worker_owner }}/${{ inputs.worker_repo }}
+      event-type: ${{ inputs.worker_event_type }}
       client-payload: |
         {
           "source_repo":"${{ github.repository }}",
           "source_run_id":"${{ github.run_id }}",
           "source_sha":"${{ github.sha }}",
           "artifact_name": "${{ inputs.artifact_name }}",
-          "target_branch_b": "${{ inputs.resource_repo_branch }}"
+          "target_branch_b": "${{ inputs.worker_repo_branch }}"
         }
   - name: Post Status using post_status.sh
     if: ${{ inputs.op == 'trigger' }}
@@ -86,7 +87,7 @@ runs:
         --sha "$GITHUB_SHA" \
         --state "${{ inputs.status_state }}" \
         --context "${{ inputs.status_context }}" \
-        --target_url "${{ github.server_url }}/${{ inputs.resource_owner }}/${{ inputs.resource_repo }}/actions" \
+        --target_url "${{ github.server_url }}/${{ inputs.worker_owner }}/${{ inputs.worker_repo }}/actions" \
         --description "Worker repo build is ${{ inputs.status_state }}" \
         --token "${{ inputs.github_token }}"
     
